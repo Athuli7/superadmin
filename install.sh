@@ -2,7 +2,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 printf "${RED}SuperAdmin Installtion${NC}\n"
 echo "Installion assumes a clean install of Ubuntu 16.04"
-echo "Installion prompts are for creating a subdomain 'superadmin for a domain name 'domain.tld' and accessing superadmin via it"
+echo "Installion prompts are for creating a subdomain 'superadmin' for a domain name 'domain.tld' and accessing superadmin via it"
 echo "you wil be prompted to provide both."
 echo "By default, a cer-key pair is generated using OpenSSL for HTTPS, if HTTPS is enabled"
 echo "You can find the cer-key pair in the /etc/ssl/<domain>/ folder."
@@ -17,14 +17,16 @@ fi
 
 #User Consent
 printf "${RED}This setup requires the installation of the Nginx, Node.js and GraphicsMagick packages using apt-get!${NC}\n"
-read -p "Do you wish to permit this ? (y/n) : " userConsent
+read -p "Do you wish to continue ? (y/n) : " userConsent
 
 if [ "$userConsent" == "y" ]; then
     read -p "Do you want to provide SuperAdmin via HTTP? (y/n) : " httpEn
     read -p "Do you want to provide SuperAdmin via HTTPS? (y/n) : " httpsEn
-
+    read -p "Do you wish to install cron job to start SuperAdmin automaticly after server restart? (y/n) :" autorestart
+    read -p "Which user should SuperAdmin use to run your applications ? (default root) : " user
+    
     #User Input
-    read -p "Domain without protocol (e.g. domain.tk): " domain
+    read -p "Domain without protocol (e.g. domain.tld): " domain
     read -p "Subdomain without protocol (e.g. superadmin): " subdomain
 
     if [ "$httpsEn" == "y" ]; then
@@ -34,11 +36,11 @@ if [ "$userConsent" == "y" ]; then
         read -p "Organization Name (e.g. Novocorp Industries Inc): " certO
         read -p "Organizational Unit Name (e.g. IT department): " certOU
     fi
-
+    printf "${RED}Installtion commencing...${NC}\n"
     #Prerequisits
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
-    apt-get install python-software-properties
-    apt-get install software-properties-common
+    apt-get install -y python-software-properties
+    apt-get install -y software-properties-common
     curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
     apt-get update
     apt-get install -y nginx
@@ -88,7 +90,7 @@ if [ "$userConsent" == "y" ]; then
     service nginx reload
 
     rm /www/superadmin/user.guid
-    read -p "Which user should SuperAdmin use to run your applications ? (default root) : " user
+  
     if id "$user" >/dev/null 2>&1; then
         printf "Using user -> %s\n" "$user"
         uid=$(id -u ${user})
@@ -98,8 +100,7 @@ if [ "$userConsent" == "y" ]; then
         printf "User %s does not exist. Using root instead.\n" "$user"
         echo "root:0:0" >> /www/superadmin/user.guid
     fi
-
-    read -p "Do you wish to install cron job to start SuperAdmin automaticly after server restart? (y/n) :" autorestart
+    
     if [ "$autorestart" == "y" ]; then
         #write out current crontab
         crontab -l > mycron
